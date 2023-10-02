@@ -1,3 +1,10 @@
+/*
+Noeud interface du BUS CAN
+au 500 ms on envoie l'état d'alimentation du système on (0x00) ou off(0xFF) avec ID = 0x120 
+et on lis tout les autres noeuds.
+*/
+
+
 #include <Arduino.h>
 #include <ESP32CAN.h>
 #include <CAN_config.h>
@@ -5,8 +12,6 @@
 
 #define LED_ON 12
 #define LED_OFF 27
-
-NHD_lib Screen(1, 1, 0, 50, 8); // configurer l'ecran LCD
 
 CAN_frame_t tx_frame;
 CAN_frame_t rx_frame;
