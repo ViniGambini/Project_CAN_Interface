@@ -8,16 +8,19 @@
 #ifndef NHD_lib_h
 #define NHD_lib_h
 
+#include <HardwareSerial.h>
 #include <Arduino.h>
 
 enum Direction {
 	left = 0, right = 1
 };
 
+
+
 class NHD_lib
 {
 	public:
-		NHD_lib(bool displayState, bool underlineState, bool blinkState, int contrast, int brightness);
+		NHD_lib(bool displayState, bool underlineState, bool blinkState, int contrast, int brightness, HardwareSerial * serial);
 		void begin(unsigned int speed);
 		void DisplayState(bool state);
 		void SetCursor(int lign, int column);
@@ -50,6 +53,7 @@ class NHD_lib
 		int _bright;
 		Direction _dir_display;
 		int _nbr_display;
+		HardwareSerial * _serial;
 };
 
 #endif

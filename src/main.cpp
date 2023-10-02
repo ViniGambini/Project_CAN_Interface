@@ -12,6 +12,26 @@ et on lis tout les autres noeuds.
 #define LED_ON 12
 #define LED_OFF 27
 
+HardwareSerial SerialPort(2);
+
+NHD_lib Screen(1, 1, 0, 40, 8, &SerialPort);
+
+enum etats
+{
+  vent_,
+  temp_,
+  batt_,
+  solar_,
+  onduleur_
+};
+etats etat = vent_;
+
+char buffer[3];
+bool screen_init_flag = false;
+
+long previousMillis1 = 0;
+long previousMillis2 = 0;
+
 CAN_frame_t tx_frame;
 CAN_frame_t rx_frame;
 
@@ -29,6 +49,9 @@ uint16_t temperature = 0;
 uint16_t puissance_panneau_solaire = 0;
 uint8_t niveau_batterie = 0;
 uint8_t etat_ondulateur = 0;
+
+uint8_t etat_chauffage = 0;
+
 
 bool bouton_on_off_change = false; // chg d'etat sur bouton on off
 
@@ -63,6 +86,7 @@ void IRAM_ATTR onTimer() // fonction d'interruption de timer
 void setup()
 {
   Serial.begin(9600);
+  Screen.begin(9600);
 
   // Configuration de l'interrupt du Bouton ON/OFF
   pinMode(13, INPUT);
@@ -99,7 +123,7 @@ void setup()
   p_filter.AMR1 = 0x0F; // 1 regarde pas, 0 regarde
   p_filter.AMR2 = 0xFF;
   p_filter.AMR3 = 0xFF;
-  //ESP32Can.CANConfigFilter(&p_filter);
+  // ESP32Can.CANConfigFilter(&p_filter);
 
   // Initier le CAN controller
   ESP32Can.CANInit();
@@ -173,6 +197,8 @@ void loop()
       Serial.print(temperature);
       Serial.print("K  ");
 
+      etat_chauffage = rx_frame.data.u8[2];
+
       // differentes situations du systeme de chauffage
       if (rx_frame.data.u8[2] == 0) // maintient
       {
@@ -206,6 +232,8 @@ void loop()
 
     case 0x1A0: // Ondulateur
       Serial.print("Etat du ondulateur : ");
+
+      etat_ondulateur = rx_frame.data.u8[0];
 
       if (rx_frame.data.u8[0] == 0x0) // afficher si l'ondulatuer est ON ou OFF
       {
@@ -246,4 +274,181 @@ void loop()
       break;
     }
   }
+
+ /* unsigned long currentMillis1 = millis();
+  unsigned long currentMillis2 = millis();
+
+  switch (etat)
+  {
+  case vent_:
+    if (!screen_init_flag)
+    {
+      Screen.SetCursor(1, 1);
+      SerialPort.print("Vent = 000km/h      ");
+      Screen.SetCursor(2, 1);
+      SerialPort.print("Protection :        ");
+      Screen.SetCursor(3, 1);
+      SerialPort.print("                    ");
+      Screen.SetCursor(4, 1);
+      SerialPort.print("                    ");
+      screen_init_flag = true;
+    }
+    if (currentMillis1 - previousMillis1 > 100)
+    {
+      previousMillis1 = currentMillis1;
+      Screen.SetCursor(1, 8);
+      sprintf(buffer, "%03d", vent);
+      SerialPort.print(buffer);
+
+      Screen.SetCursor(2, 14);
+      if (etat_protection == false)
+      {
+        SerialPort.print("Off");
+      }
+      else
+      {
+        SerialPort.print("On ");
+      }
+    }
+    if (currentMillis2 - previousMillis2 > 2000)
+    {
+      previousMillis2 = currentMillis2;
+      etat = temp_;
+      screen_init_flag = false;
+    }
+
+    break;
+
+  case temp_:
+    if (!screen_init_flag)
+    {
+      Screen.SetCursor(1, 1);
+      SerialPort.print("Temperature = 000°C ");
+      Screen.SetCursor(2, 1);
+      SerialPort.print("État du chauffage : ");
+      Screen.SetCursor(3, 1);
+      SerialPort.print("                    ");
+      Screen.SetCursor(4, 1);
+      SerialPort.print("                    ");
+      screen_init_flag = true;
+    }
+    if (currentMillis1 - previousMillis1 > 100)
+    {
+      previousMillis1 = currentMillis1;
+      Screen.SetCursor(1, 15);
+      sprintf(buffer, "%03d", temperature);
+      SerialPort.print(buffer);
+
+      Screen.SetCursor(3, 0);
+      if (etat_chauffage == 0)
+      {
+        SerialPort.print("Neutre              ");
+      }
+      else if (etat_chauffage == 1)
+      {
+        SerialPort.print("Chauffage           ");
+      }
+      else if (etat_chauffage == 2)
+      {
+        SerialPort.print("Refroidissement     ");
+      }
+    }
+    if (currentMillis2 - previousMillis2 > 2000)
+    {
+      previousMillis2 = currentMillis2;
+      etat = vent_;
+      screen_init_flag = false;
+    }
+    break;
+
+  /*case batt_:
+    if (!screen_init_flag)
+    {
+      Screen.SetCursor(1, 1);
+      SerialPort.print("Pourcentage Batterie");
+      Screen.SetCursor(2, 1);
+      SerialPort.print("  000%              ");
+      Screen.SetCursor(3, 1);
+      SerialPort.print("Etat :              ");
+      Screen.SetCursor(4, 1);
+      SerialPort.print("                    ");
+      screen_init_flag = true;
+    }
+    if (currentMillis1 - previousMillis1 > 100)
+    {
+      previousMillis1 = currentMillis1;
+      Screen.SetCursor(2, 3);
+      sprintf(buffer, "%03d", niveau_batterie);
+      SerialPort.print(buffer);
+
+      Screen.SetCursor(3, 8);
+     
+    }
+    if (currentMillis2 - previousMillis2 > 2000)
+    {
+      previousMillis2 = currentMillis2;
+      etat = solar_;
+      screen_init_flag = false;
+    }
+    break;
+
+  case solar_:
+    if (!screen_init_flag)
+    {
+      Screen.SetCursor(1, 1);
+      SerialPort.print("Panneau Solaire     ");
+      Screen.SetCursor(2, 1);
+      SerialPort.print("Prodution : 000W    ");
+      Screen.SetCursor(3, 1);
+      SerialPort.print("                    ");
+      Screen.SetCursor(4, 1);
+      SerialPort.print("                    ");
+      screen_init_flag = true;
+    }
+    if (currentMillis1 - previousMillis1 > 100)
+    {
+      previousMillis1 = currentMillis1;
+      Screen.SetCursor(2, 13);
+      sprintf(buffer, "%03d", puissance_panneau_solaire);
+      SerialPort.print(buffer);
+    }
+    if (currentMillis2 - previousMillis2 > 2000)
+    {
+      previousMillis2 = currentMillis2;
+      etat = onduleur_;
+      screen_init_flag = false;
+    }
+    break;
+
+  case onduleur_:
+    if (!screen_init_flag)
+    {
+      Screen.SetCursor(1, 1);
+      SerialPort.print("Onduleur            ");
+      Screen.SetCursor(2, 1);
+      SerialPort.print("Consommation : 000W ");
+      Screen.SetCursor(3, 1);
+      SerialPort.print("État :              ");
+      Screen.SetCursor(4, 1);
+      SerialPort.print("                    ");
+      screen_init_flag = true;
+    }
+    if (currentMillis1 - previousMillis1 > 100)
+    {
+      previousMillis1 = currentMillis1;
+      Screen.SetCursor(2, 16);
+      sprintf(buffer, "%03d", etat_ondulateur);
+      SerialPort.print(buffer);
+
+      Screen.SetCursor(3, 8);
+      
+    }
+    if (currentMillis2 - previousMillis2 > 2000)
+    {
+      previousMillis2 = currentMillis2;
+      etat = vent_;
+      screen_init_flag = false;
+    }
+    break;
+  }*/
 }

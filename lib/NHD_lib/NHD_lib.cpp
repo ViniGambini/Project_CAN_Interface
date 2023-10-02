@@ -7,17 +7,23 @@
 
 #include "NHD_lib.h"
 
-NHD_lib::NHD_lib(bool displayState, bool underlineState, bool blinkState, int contrast, int brightness){
+
+
+NHD_lib::NHD_lib(bool displayState, bool underlineState, bool blinkState, int contrast, int brightness, HardwareSerial * serial){
   _state_display = displayState;
   _state_underline = underlineState;
   _state_blink = blinkState;
   _contrast = contrast;
   _bright = brightness;
+  _serial = serial;
+  //HardwareSerial SerialPort(2); // use UART2
+  
 }
 
 void NHD_lib::begin(unsigned int speed){
 	_speed = speed;
-	Serial.begin(_speed);
+	
+	_serial->begin(_speed, SERIAL_8N1, 16, 17);
   
 	DisplayState(_state_display);
 	UnderlineCursor(_state_underline);
@@ -34,12 +40,12 @@ void NHD_lib::begin(unsigned int speed){
 void NHD_lib::DisplayState(bool state){
   _state_display = state;
   if(_state_display == 1){
-    Serial.write(0xFE); //Display ON
-    Serial.write(0x41);
+    _serial->write(0xFE); //Display ON
+    _serial->write(0x41);
   } 
   else{
-    Serial.write(0xFE); //Display OFF
-    Serial.write(0x42);
+    _serial->write(0xFE); //Display OFF
+    _serial->write(0x42);
   }
   delay(0.1);
 }
@@ -67,27 +73,27 @@ void NHD_lib::SetCursor(int lign, int column){
   else if(_lign >= 4){
 	_pos = 0x54 + (_column - 1);
   }
-  Serial.write(0xFE);
-  Serial.write(0x45);
-  Serial.write(_pos);
+  _serial->write(0xFE);
+  _serial->write(0x45);
+  _serial->write(_pos);
   delay(0.1);
 }
 
 void NHD_lib::CursorHome(){
-	Serial.write(0xFE);
-	Serial.write(0x46); 
+	_serial->write(0xFE);
+	_serial->write(0x46); 
 	delay(1.5);
 }
 
 void NHD_lib::UnderlineCursor(bool state){
     _state_underline = state;
     if(_state_underline == 1){
-        Serial.write(0xFE); //Underline Cursor ON
-        Serial.write(0x47);
+        _serial->write(0xFE); //Underline Cursor ON
+        _serial->write(0x47);
     } 
     else{
-        Serial.write(0xFE); //Underline Cursor OFF
-		Serial.write(0x48);
+        _serial->write(0xFE); //Underline Cursor OFF
+		_serial->write(0x48);
 	}
 	delay(1.5);
 }
@@ -98,12 +104,12 @@ void NHD_lib::MoveCursor(Direction dir, int nbr){
 	
 	for(int move = 0; move < _nbr_move; move++){
 		if(_dir_move == left){
-			Serial.write(0xFE); //Move Left
-			Serial.write(0x49);
+			_serial->write(0xFE); //Move Left
+			_serial->write(0x49);
 		}
 		else if(_dir_move == right){
-			Serial.write(0xFE); //Move Right
-			Serial.write(0x4A);
+			_serial->write(0xFE); //Move Right
+			_serial->write(0x4A);
 		}
 		delay(0.1);
 	}
@@ -112,12 +118,12 @@ void NHD_lib::MoveCursor(Direction dir, int nbr){
 void NHD_lib::BlinkCursor(bool state){
 	_state_blink = state;
 	if(_state_blink == 1){
-		Serial.write(0xFE); //Blinking Cursor ON
-		Serial.write(0x4B);
+		_serial->write(0xFE); //Blinking Cursor ON
+		_serial->write(0x4B);
 	} 
 	else{
-		Serial.write(0xFE); //Blinking Cursor OFF
-		Serial.write(0x4C);
+		_serial->write(0xFE); //Blinking Cursor OFF
+		_serial->write(0x4C);
 	}
 	delay(0.1);
 }
@@ -125,15 +131,15 @@ void NHD_lib::BlinkCursor(bool state){
 void NHD_lib::Backspace(int nbr){
 	_nbr_backspace = nbr;
 	for(int back = 0; back < _nbr_backspace; back++){
-		Serial.write(0xFE);
-		Serial.write(0x4E); 
+		_serial->write(0xFE);
+		_serial->write(0x4E); 
 		delay(0.1);
 	}
 }
 
 void NHD_lib::ClearScreen(){
-	Serial.write(0xFE);
-    Serial.write(0x51); 
+	_serial->write(0xFE);
+    _serial->write(0x51); 
 	delay(1.5);
 }
 
@@ -145,9 +151,9 @@ void NHD_lib::SetContrast(int contrast){
   else if(_contrast <= 1){
     _contrast = 1;
   }
-  Serial.write(0xFE);
-  Serial.write(0x52);
-  Serial.write(_contrast);
+  _serial->write(0xFE);
+  _serial->write(0x52);
+  _serial->write(_contrast);
   delay(0.5);
 }
 
@@ -164,9 +170,9 @@ void NHD_lib::SetBrightness(int bright){
   else if(_bright <= 1){
     _bright = 1;
   }
-  Serial.write(0xFE);
-  Serial.write(0x53);
-  Serial.write(_bright);
+  _serial->write(0xFE);
+  _serial->write(0x53);
+  _serial->write(_bright);
   delay(0.1);
 }
 
@@ -185,19 +191,19 @@ void NHD_lib::MoveDisplay(Direction dir, int nbr){
 	
 	for(int display = 0; display < _nbr_display; display++){
 		if(_dir_display == left){
-			Serial.write(0xFE); //Move Display Left
-			Serial.write(0x55);
+			_serial->write(0xFE); //Move Display Left
+			_serial->write(0x55);
 		}
 		else if(_dir_display == right){
-			Serial.write(0xFE); //Move Display Right
-			Serial.write(0x56);
+			_serial->write(0xFE); //Move Display Right
+			_serial->write(0x56);
 		}
 		delay(0.1);
 	}
 }
 
 void NHD_lib::DisplayFirmwareVersion(){
-	Serial.write(0xFE);
-    Serial.write(0x70);
+	_serial->write(0xFE);
+    _serial->write(0x70);
 	delay(4);
 }
