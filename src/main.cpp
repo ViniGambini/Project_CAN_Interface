@@ -7,6 +7,7 @@ et on lis tout les autres noeuds.
 #include <Arduino.h>
 #include <ESP32CAN.h>
 #include <CAN_config.h>
+#include <NHD_lib.h>
 
 #define LED_ON 12
 #define LED_OFF 27
