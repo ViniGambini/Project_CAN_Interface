@@ -24,7 +24,9 @@ uint16_t puissance_panneau_solaire = 0;
 uint8_t niveau_batterie = 0;
 uint8_t etat_ondulateur = 0;
 
-bool etat_protection = true; // flag pour la protection du capteur du vent
+bool bouton_on_off_change = false; // chg d'etat sur bouton on off
+
+bool etat_protection = true; 
 
 bool envoyer_message_flag = false; // flag pour envoyer l'etat de l'interface a chaque interruption de timer
 
@@ -51,9 +53,11 @@ void IRAM_ATTR onTimer() // fonction d'interruption de timer
   }
 }
 
-void IRAM_ATTR isr() // interrupt pour activer et desactriver l'interface
+/*void IRAM_ATTR isr() // interrupt pour activer et desactiver l'interface
 {
-  if (1 == digitalRead(13)) // si la borche 13 est a 5V
+  bouton_on_off_change = true;
+  /*int bouton_on_off_temp = digitalRead(13);
+  if (bouton_on_off_temp == HIGH) // si la borche 13 (bouton on off) est a 3.3V
   {
     bouton_on_off = true; // mettre l'interface a ON
   }
@@ -61,15 +65,15 @@ void IRAM_ATTR isr() // interrupt pour activer et desactriver l'interface
   {
     bouton_on_off = false; // mettre l'interface a OFF
   }
-}
+}*/
 
 void setup()
 {
   Screen.begin(9600);
 
   // Configuration de l'interrupt du Bouton ON/OFF
-  pinMode(13, INPUT_PULLUP);
-  attachInterrupt(13, isr, CHANGE);
+  pinMode(13, INPUT);
+  //attachInterrupt(13, isr, CHANGE);
   bouton_on_off = digitalRead(13);
 
   // LED
@@ -112,38 +116,57 @@ void setup()
 void loop()
 {
 
+  /*// bouton on off change
+  if (bouton_on_off_change == true)
+  {
+    
+    bouton_on_off_change = false;
+  }*/
+
   // Gestion des LED en focntion de l'etat de l'interface (ON ou OFF)
   // et de l'etat de la protection du capteur de vent (ON ou OFF)
-  if (etat_protection && !bouton_on_off)
+  if (etat_protection || !bouton_on_off) // OFF
   {
     digitalWrite(LED_OFF, HIGH);
     digitalWrite(LED_ON, LOW);
   }
-  else
+  else // ON
   {
     digitalWrite(LED_ON, HIGH);
     digitalWrite(LED_OFF, LOW);
   }
 
-  if (envoyer_message_flag == true) // si le flag pour envoyer le messager est lever
+  if (envoyer_message_flag == true) // si le flag pour envoyer le message est levé
   {
-    if (bouton_on_off)
+    int bouton_on_off_temp = digitalRead(13);
+    if (bouton_on_off_temp == 1) // si la borche 13 (bouton on off) est a 3.3V
+    {
+      bouton_on_off = true; // mettre l'interface a ON
+    }
+    else
+    {
+      bouton_on_off = false; // mettre l'interface a OFF
+    }
+
+    if (bouton_on_off == true)
     { // si l'interface est ON
       envoyer_message(0x00);
+      // Serial.println("Envoie system on");
     }
     else
     { // si l'interface est OFF
       envoyer_message(0xFF);
+      // Serial.println("Envoie system off");
     }
 
-    envoyer_message_flag == false; // redessendre le flag pour envoyer le message
+    envoyer_message_flag = false; // redescendre le flag pour envoyer le message
   }
 
   // Reception CAN Message
   //  Receive next CAN frame from queue
   if (xQueueReceive(CAN_cfg.rx_queue, &rx_frame, 3 * portTICK_PERIOD_MS) == pdTRUE)
   {
-    
+
     switch (rx_frame.MsgID) // en fonction du ID du message qu'on recois
     {
     case 0x100:                        // capteur vent mode protection
@@ -152,7 +175,7 @@ void loop()
         Serial.println("Protection OFF");
         etat_protection = false;
       }
-      else if (rx_frame.data.u8[0] == 0xFF) // activer la protection
+      else // activer la protection
       {
         Serial.println("Protection ON");
         etat_protection = true;
