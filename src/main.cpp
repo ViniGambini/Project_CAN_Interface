@@ -98,7 +98,7 @@ void setup()
   p_filter.AMR1 = 0x0F; // 1 regarde pas, 0 regarde
   p_filter.AMR2 = 0xFF;
   p_filter.AMR3 = 0xFF;
-  ESP32Can.CANConfigFilter(&p_filter);
+  //ESP32Can.CANConfigFilter(&p_filter);
 
   // Initier le CAN controller
   ESP32Can.CANInit();
