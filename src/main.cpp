@@ -1,6 +1,6 @@
 /*
 Noeud interface du BUS CAN
-au 500 ms on envoie l'état d'alimentation du système on (0x00) ou off(0xFF) avec ID = 0x120 
+au 1000 ms on envoie l'état d'alimentation du système on (0x00) ou off(0xFF) avec ID = 0x120 
 et on lis tout les autres noeuds.
 */
 
