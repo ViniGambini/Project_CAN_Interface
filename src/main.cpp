@@ -1,9 +1,8 @@
 /*
 Noeud interface du BUS CAN
-au 1000 ms on envoie l'état d'alimentation du système on (0x00) ou off(0xFF) avec ID = 0x120 
+au 1000 ms on envoie l'état d'alimentation du système on (0x00) ou off(0xFF) avec ID = 0x120
 et on lis tout les autres noeuds.
 */
-
 
 #include <Arduino.h>
 #include <ESP32CAN.h>
@@ -22,6 +21,8 @@ const int rx_queue_size = 10;     // Receive Queue size
 
 bool bouton_on_off = false; // flag de l'activation et desactivation de l'interface. Initialment a OFF
 
+int timeout = 0; // timeout
+
 uint16_t vent = 0; // variable pour enregistrer les donnees recu
 uint16_t temperature = 0;
 uint16_t puissance_panneau_solaire = 0;
@@ -30,7 +31,7 @@ uint8_t etat_ondulateur = 0;
 
 bool bouton_on_off_change = false; // chg d'etat sur bouton on off
 
-bool etat_protection = true; 
+bool etat_protection = true;
 
 bool envoyer_message_flag = false; // flag pour envoyer l'etat de l'interface a chaque interruption de timer
 
@@ -55,6 +56,7 @@ void IRAM_ATTR onTimer() // fonction d'interruption de timer
   {                              // si la protection du vent n'est pas activer
     envoyer_message_flag = true; // lever le flag d'envoyer un message
   }
+  timeout++;
 }
 
 void setup()
@@ -107,7 +109,7 @@ void loop()
 
   // Gestion des LED en focntion de l'etat de l'interface (ON ou OFF)
   // et de l'etat de la protection du capteur de vent (ON ou OFF)
-  if (etat_protection || !bouton_on_off) // OFF
+  if (etat_protection || !bouton_on_off || (timeout >= 3)) // OFF
   {
     digitalWrite(LED_OFF, HIGH);
     digitalWrite(LED_ON, LOW);
@@ -130,7 +132,7 @@ void loop()
     else
     { // si l'interface est OFF
       envoyer_message(0xFF);
-    Serial.println("Envoie system off");
+      Serial.println("Envoie system off");
     }
 
     envoyer_message_flag = false; // redescendre le flag pour envoyer le message
@@ -140,6 +142,7 @@ void loop()
   //  Receive next CAN frame from queue
   if (xQueueReceive(CAN_cfg.rx_queue, &rx_frame, 3 * portTICK_PERIOD_MS) == pdTRUE)
   {
+    timeout = 0;
 
     switch (rx_frame.MsgID) // en fonction du ID du message qu'on recois
     {
