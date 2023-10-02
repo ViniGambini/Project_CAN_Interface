@@ -8,7 +8,6 @@ et on lis tout les autres noeuds.
 #include <Arduino.h>
 #include <ESP32CAN.h>
 #include <CAN_config.h>
-#include <NHD_lib.h>
 
 #define LED_ON 12
 #define LED_OFF 27
@@ -58,27 +57,12 @@ void IRAM_ATTR onTimer() // fonction d'interruption de timer
   }
 }
 
-/*void IRAM_ATTR isr() // interrupt pour activer et desactiver l'interface
-{
-  bouton_on_off_change = true;
-  /*int bouton_on_off_temp = digitalRead(13);
-  if (bouton_on_off_temp == HIGH) // si la borche 13 (bouton on off) est a 3.3V
-  {
-    bouton_on_off = true; // mettre l'interface a ON
-  }
-  else
-  {
-    bouton_on_off = false; // mettre l'interface a OFF
-  }
-}*/
-
 void setup()
 {
-  Screen.begin(9600);
+  Serial.begin(9600);
 
   // Configuration de l'interrupt du Bouton ON/OFF
   pinMode(13, INPUT);
-  //attachInterrupt(13, isr, CHANGE);
   bouton_on_off = digitalRead(13);
 
   // LED
@@ -121,13 +105,6 @@ void setup()
 void loop()
 {
 
-  /*// bouton on off change
-  if (bouton_on_off_change == true)
-  {
-    
-    bouton_on_off_change = false;
-  }*/
-
   // Gestion des LED en focntion de l'etat de l'interface (ON ou OFF)
   // et de l'etat de la protection du capteur de vent (ON ou OFF)
   if (etat_protection || !bouton_on_off) // OFF
@@ -143,25 +120,17 @@ void loop()
 
   if (envoyer_message_flag == true) // si le flag pour envoyer le message est levé
   {
-    int bouton_on_off_temp = digitalRead(13);
-    if (bouton_on_off_temp == 1) // si la borche 13 (bouton on off) est a 3.3V
-    {
-      bouton_on_off = true; // mettre l'interface a ON
-    }
-    else
-    {
-      bouton_on_off = false; // mettre l'interface a OFF
-    }
+    bouton_on_off = digitalRead(13);
 
     if (bouton_on_off == true)
     { // si l'interface est ON
       envoyer_message(0x00);
-      // Serial.println("Envoie system on");
+      Serial.println("Envoie system on");
     }
     else
     { // si l'interface est OFF
       envoyer_message(0xFF);
-      // Serial.println("Envoie system off");
+    Serial.println("Envoie system off");
     }
 
     envoyer_message_flag = false; // redescendre le flag pour envoyer le message
